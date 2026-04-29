@@ -14,6 +14,7 @@ function CheckoutContent() {
   const [slip, setSlip] = useState<File | null>(null)
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'info' | 'pay' | 'done'>('info')
 
   useEffect(() => {
@@ -49,7 +50,7 @@ function CheckoutContent() {
     if (data.orderId) {
       router.push(`/order/${data.orderId}`)
     } else {
-      alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      setError(data.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
     }
   }
 
@@ -144,12 +145,18 @@ function CheckoutContent() {
             </label>
           </div>
 
+          {error && (
+            <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-300 text-sm">
+              ❌ {error}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading || !playerName.trim() || !slip}
             className={`w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r ${product.color} disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity`}
           >
-            {loading ? 'กำลังส่ง...' : 'ยืนยันการสั่งซื้อ'}
+            {loading ? '🔍 กำลังตรวจสอบสลิป...' : 'ยืนยันการสั่งซื้อ'}
           </button>
         </form>
       </div>

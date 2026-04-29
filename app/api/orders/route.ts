@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendDiscordNotification } from '@/lib/discord'
 import { products } from '@/lib/products'
+import { verifySlip } from '@/lib/easyslip'
 
 export async function POST(request: NextRequest) {
   const form = await request.formData()
@@ -17,6 +18,12 @@ export async function POST(request: NextRequest) {
   const product = products.find((p) => p.id === productId)
   if (!product) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+  }
+
+  // Verify slip before accepting order
+  const verification = await verifySlip(slip, product.price)
+  if (!verification.valid) {
+    return NextResponse.json({ error: verification.reason }, { status: 422 })
   }
 
   const db = supabaseAdmin()
@@ -35,7 +42,7 @@ export async function POST(request: NextRequest) {
   const { data: urlData } = db.storage.from('slips').getPublicUrl(uploadData.path)
   const slipUrl = urlData.publicUrl
 
-  // Create order in database
+  // Auto-confirmed since slip is already verified
   const { data: order, error: orderError } = await db
     .from('orders')
     .insert({
@@ -44,7 +51,7 @@ export async function POST(request: NextRequest) {
       product_name: product.name,
       price: product.price,
       slip_url: slipUrl,
-      status: 'pending',
+      status: 'confirmed',
     })
     .select()
     .single()
