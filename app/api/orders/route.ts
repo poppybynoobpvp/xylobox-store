@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
   const fileExt = (slip.name.split('.').pop() ?? 'jpg').toLowerCase()
   const fileName = `${Date.now()}.${fileExt}`
   const arrayBuffer = await slip.arrayBuffer()
-  const fileBuffer = new Uint8Array(arrayBuffer)
+  const blob = new Blob([arrayBuffer], { type: slip.type || 'image/jpeg' })
 
   const { data: uploadData, error: uploadError } = await db.storage
     .from('slips')
-    .upload(fileName, fileBuffer, { contentType: slip.type || 'image/jpeg' })
+    .upload(fileName, blob, { contentType: slip.type || 'image/jpeg', upsert: false })
 
   if (uploadError) {
     const debugUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'NOT SET').slice(0, 30)
