@@ -29,14 +29,18 @@ export async function POST(request: NextRequest) {
   const db = supabaseAdmin()
 
   // Upload slip image to Supabase Storage
-  const fileExt = slip.name.split('.').pop()
-  const fileName = `${Date.now()}-${playerName}.${fileExt}`
+  const fileExt = slip.name.split('.').pop() ?? 'jpg'
+  const safeName = playerName.replace(/[^a-zA-Z0-9]/g, '_')
+  const fileName = `${Date.now()}-${safeName}.${fileExt}`
   const { data: uploadData, error: uploadError } = await db.storage
     .from('slips')
     .upload(fileName, slip, { contentType: slip.type })
 
   if (uploadError) {
-    return NextResponse.json({ error: 'Failed to upload slip' }, { status: 500 })
+    return NextResponse.json(
+      { error: `Upload failed: ${uploadError.message}` },
+      { status: 500 }
+    )
   }
 
   const { data: urlData } = db.storage.from('slips').getPublicUrl(uploadData.path)
