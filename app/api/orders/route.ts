@@ -28,26 +28,10 @@ export async function POST(request: NextRequest) {
 
   const db = supabaseAdmin()
 
-  // Upload slip image to Supabase Storage
-  const fileExt = (slip.name.split('.').pop() ?? 'jpg').toLowerCase()
-  const fileName = `${Date.now()}.${fileExt}`
+  // Convert slip to base64 data URL and store in database
   const arrayBuffer = await slip.arrayBuffer()
-  const blob = new Blob([arrayBuffer], { type: slip.type || 'image/jpeg' })
-
-  const { data: uploadData, error: uploadError } = await db.storage
-    .from('slips')
-    .upload(fileName, blob, { contentType: slip.type || 'image/jpeg', upsert: false })
-
-  if (uploadError) {
-    const debugUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'NOT SET').slice(0, 30)
-    return NextResponse.json(
-      { error: `Upload failed: ${uploadError.message} | url: ${debugUrl} | file: ${fileName}` },
-      { status: 500 }
-    )
-  }
-
-  const { data: urlData } = db.storage.from('slips').getPublicUrl(uploadData.path)
-  const slipUrl = urlData.publicUrl
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  const slipUrl = `data:${slip.type || 'image/jpeg'};base64,${base64}`
 
   // Auto-confirmed since slip is already verified
   const { data: order, error: orderError } = await db
