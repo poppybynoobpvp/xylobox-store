@@ -39,8 +39,9 @@ export async function POST(request: NextRequest) {
     .upload(fileName, fileBuffer, { contentType: slip.type || 'image/jpeg' })
 
   if (uploadError) {
+    const debugUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'NOT SET').slice(0, 30)
     return NextResponse.json(
-      { error: `Upload failed: ${uploadError.message}` },
+      { error: `Upload failed: ${uploadError.message} | url: ${debugUrl} | file: ${fileName}` },
       { status: 500 }
     )
   }
