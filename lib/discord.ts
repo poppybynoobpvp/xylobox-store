@@ -21,7 +21,7 @@ export async function sendDiscordNotification(order: {
             { name: 'Player', value: order.playerName, inline: true },
             { name: 'Product', value: order.productName, inline: true },
             { name: 'Price', value: `${order.price} THB`, inline: true },
-            { name: 'Slip', value: `ดูสลิปได้ที่ Admin Panel (สลิปผ่านการตรวจสอบแล้ว ✅)`, inline: false },
+            { name: 'Slip ✅ ผ่านการตรวจสอบแล้ว', value: `[ดูสลิป](${order.slipUrl})`, inline: false },
           ],
           footer: { text: 'XyloBox Store • xylobox.org' },
           timestamp: new Date().toISOString(),

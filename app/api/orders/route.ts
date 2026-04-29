@@ -4,6 +4,21 @@ import { sendDiscordNotification } from '@/lib/discord'
 import { products } from '@/lib/products'
 import { verifySlip } from '@/lib/easyslip'
 
+async function uploadToImgBB(arrayBuffer: ArrayBuffer, mimeType: string): Promise<string> {
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  const params = new URLSearchParams({
+    key: process.env.IMGBB_API_KEY ?? '',
+    image: base64,
+  })
+  const res = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    body: params,
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.error?.message ?? 'ImgBB upload failed')
+  return json.data.url as string
+}
+
 export async function POST(request: NextRequest) {
   const form = await request.formData()
 
@@ -26,12 +41,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: verification.reason }, { status: 422 })
   }
 
-  const db = supabaseAdmin()
+  // Upload slip to ImgBB
+  let slipUrl: string
+  try {
+    const arrayBuffer = await slip.arrayBuffer()
+    slipUrl = await uploadToImgBB(arrayBuffer, slip.type || 'image/jpeg')
+  } catch (e) {
+    return NextResponse.json({ error: `Slip upload failed: ${(e as Error).message}` }, { status: 500 })
+  }
 
-  // Convert slip to base64 data URL and store in database
-  const arrayBuffer = await slip.arrayBuffer()
-  const base64 = Buffer.from(arrayBuffer).toString('base64')
-  const slipUrl = `data:${slip.type || 'image/jpeg'};base64,${base64}`
+  const db = supabaseAdmin()
 
   // Auto-confirmed since slip is already verified
   const { data: order, error: orderError } = await db
@@ -48,7 +67,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (orderError) {
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    return NextResponse.json({ error: `DB error: ${orderError.message}` }, { status: 500 })
   }
 
   // Notify admin on Discord
